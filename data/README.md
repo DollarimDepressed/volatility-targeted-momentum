@@ -30,6 +30,8 @@ The notebook stops if the download is empty or lacks `Close`. It then checks tha
 
 No missing selected prices were imputed or forward-filled. No local data cache was written at this checkpoint.
 
+During the return-series validation run, one live request returned no observations. The notebook's empty-download guard stopped execution, and an unchanged retry returned the complete validated sample. Live acquisition can therefore fail transiently; an empty response must never be treated as a valid dataset or silently carried into calculations.
+
 ## Known limitations
 
 - Yahoo Finance is an external data provider and can revise historical observations or change its interface.

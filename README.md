@@ -8,7 +8,7 @@ Does applying volatility-targeted exposure to a long/cash time-series momentum s
 
 ## Day 1 status
 
-The initial specification remains locked in [`docs/model_spec.md`](docs/model_spec.md). Sections 1–2 of [`notebooks/01_prototype.ipynb`](notebooks/01_prototype.ipynb) now define the locked configuration and download and validate the adjusted SPY price series. No return or strategy result has yet been calculated.
+The initial specification remains locked in [`docs/model_spec.md`](docs/model_spec.md). Sections 1–3 of [`notebooks/01_prototype.ipynb`](notebooks/01_prototype.ipynb) now define the locked configuration, validate the adjusted SPY price series and calculate validated simple daily returns. No strategy result has yet been calculated.
 
 ## Initial comparison
 
