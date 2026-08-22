@@ -8,7 +8,7 @@ Does applying volatility-targeted exposure to a long/cash time-series momentum s
 
 ## Day 1 status
 
-The initial specification remains locked in [`docs/model_spec.md`](docs/model_spec.md). Sections 1–6 of [`notebooks/01_prototype.ipynb`](notebooks/01_prototype.ipynb) now validate adjusted SPY prices and returns, build buy and hold, construct the lagged 252-day long/cash momentum signal, and estimate and lag 21-day annualised volatility. Target exposure has not yet been calculated.
+The initial specification remains locked in [`docs/model_spec.md`](docs/model_spec.md). Sections 1–7 of [`notebooks/01_prototype.ipynb`](notebooks/01_prototype.ipynb) now validate adjusted SPY prices and returns, build buy and hold, construct lagged momentum and volatility estimates, and calculate capped volatility-targeted gross returns. Turnover and transaction costs have not yet been calculated.
 
 ## Initial comparison
 
