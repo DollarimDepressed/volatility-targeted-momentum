@@ -8,7 +8,7 @@ Does applying volatility-targeted exposure to a long/cash time-series momentum s
 
 ## Day 1 status
 
-The initial specification remains locked in [`docs/model_spec.md`](docs/model_spec.md). Sections 1–10 of [`notebooks/01_prototype.ipynb`](notebooks/01_prototype.ipynb) now run through a validated common-sample performance table and four-panel figure covering wealth, drawdown, rolling realised volatility and exposure. The preliminary sample results show lower realised volatility and maximum drawdown for net volatility targeting than unscaled momentum, alongside lower compound return. Final consolidated sanity checks and observations remain before Day 1 completion.
+Day 1 computational implementation is complete under the unchanged specification in [`docs/model_spec.md`](docs/model_spec.md). All eleven sections of [`notebooks/01_prototype.ipynb`](notebooks/01_prototype.ipynb) run from top to bottom in a clean kernel, with 89 of 89 consolidated checks passing. The notebook regenerates the preliminary performance table, validation record and four-panel figure. The sample results show lower realised volatility and maximum drawdown for net volatility targeting than unscaled momentum, alongside lower compound return. These descriptive results are not evidence of guaranteed future performance.
 
 ## Initial comparison
 
