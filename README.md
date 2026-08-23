@@ -8,7 +8,7 @@ Does applying volatility-targeted exposure to a long/cash time-series momentum s
 
 ## Day 1 status
 
-The initial specification remains locked in [`docs/model_spec.md`](docs/model_spec.md). Sections 1–8 of [`notebooks/01_prototype.ipynb`](notebooks/01_prototype.ipynb) now validate adjusted SPY prices and returns, build buy and hold, construct lagged momentum and volatility estimates, calculate capped volatility-targeted gross returns, and deduct estimated transaction costs using daily turnover. Comparative wealth paths and performance metrics are the next Day 1 checkpoint.
+The initial specification remains locked in [`docs/model_spec.md`](docs/model_spec.md). Sections 1–9 of [`notebooks/01_prototype.ipynb`](notebooks/01_prototype.ipynb) now run through a validated common-sample performance table covering buy and hold, unscaled momentum, and gross and net volatility-targeted momentum. The preliminary sample results show lower realised volatility and maximum drawdown for net volatility targeting than unscaled momentum, alongside lower compound return. Charts and final sanity-check observations remain before Day 1 completion.
 
 ## Initial comparison
 
