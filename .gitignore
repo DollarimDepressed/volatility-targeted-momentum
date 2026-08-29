@@ -15,9 +15,12 @@ outputs/figures/*
 outputs/tables/*
 !outputs/tables/.gitkeep
 
+# Obsidian-only project knowledge and local literature
+/[0-9][0-9] *.md
+/Literature/
+
 # Editors and operating systems
 .DS_Store
 Thumbs.db
 .vscode/
 .idea/
-
