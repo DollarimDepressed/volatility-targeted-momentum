@@ -1,7 +1,8 @@
+-e .
 jupyterlab
 matplotlib
 numpy
 pandas
+pytest
 seaborn
 yfinance
-
