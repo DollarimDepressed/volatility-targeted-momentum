@@ -12,7 +12,7 @@ Day 1 computational implementation is complete under the unchanged specification
 
 ## Day 2 status
 
-Day 2 refactoring has started without changing the locked model. The simple-return calculation now lives in a reusable project package, is called by the notebook and is covered by focused automated tests for the formula, index alignment and missing-price behaviour.
+Day 2 refactoring has started without changing the locked model. The simple-return and lagged momentum-signal calculations now live in a reusable project package and are called by the notebook. Six focused automated tests cover return arithmetic, index alignment, missing-price behaviour, momentum warm-up, binary signal construction and the one-day timing identity.
 
 ## Initial comparison
 
