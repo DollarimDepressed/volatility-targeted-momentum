@@ -4,6 +4,7 @@ import pandas as pd
 from volatility_targeted_momentum import (
     calculate_momentum_signals,
     calculate_simple_returns,
+    calculate_volatility_estimates,
 )
 
 
@@ -101,3 +102,75 @@ def test_momentum_position_equals_the_lagged_raw_signal() -> None:
         result["momentum_position"],
         expected_position,
     )
+
+
+def test_volatility_estimates_match_manual_sample_standard_deviation() -> None:
+    returns = pd.Series([np.nan, 0.01, -0.01, 0.02, 0.00])
+    first_window = np.array([0.01, -0.01, 0.02])
+    manual_daily_volatility = np.sqrt(
+        ((first_window - first_window.mean()) ** 2).sum()
+        / (len(first_window) - 1)
+    )
+
+    result = calculate_volatility_estimates(
+        returns,
+        window_days=3,
+        annualisation_days=4,
+        timing_lag_days=1,
+    )
+
+    assert np.isclose(
+        result["rolling_daily_volatility"].iloc[3],
+        manual_daily_volatility,
+    )
+    assert np.isclose(
+        result["raw_annualised_volatility"].iloc[3],
+        manual_daily_volatility * np.sqrt(4),
+    )
+
+
+def test_volatility_warmup_and_lag_remain_missing() -> None:
+    returns = pd.Series([np.nan, 0.01, -0.01, 0.02, 0.00])
+
+    result = calculate_volatility_estimates(
+        returns,
+        window_days=3,
+        annualisation_days=4,
+        timing_lag_days=1,
+    )
+
+    assert result["raw_annualised_volatility"].iloc[:3].isna().all()
+    assert result["lagged_volatility_estimate"].iloc[:4].isna().all()
+
+
+def test_lagged_volatility_equals_the_previous_raw_estimate() -> None:
+    returns = pd.Series([np.nan, 0.01, -0.01, 0.02, 0.00])
+    timing_lag_days = 1
+
+    result = calculate_volatility_estimates(
+        returns,
+        window_days=3,
+        annualisation_days=4,
+        timing_lag_days=timing_lag_days,
+    )
+    expected = result["raw_annualised_volatility"].shift(
+        timing_lag_days
+    ).rename("lagged_volatility_estimate")
+
+    pd.testing.assert_series_equal(
+        result["lagged_volatility_estimate"],
+        expected,
+    )
+
+
+def test_volatility_requires_a_complete_nonmissing_window() -> None:
+    returns = pd.Series([0.01, -0.01, np.nan, 0.02, 0.01, 0.00])
+
+    result = calculate_volatility_estimates(
+        returns,
+        window_days=3,
+        annualisation_days=4,
+        timing_lag_days=1,
+    )
+
+    assert result["raw_annualised_volatility"].first_valid_index() == 5
