@@ -64,3 +64,36 @@ def calculate_volatility_estimates(
         ],
         axis=1,
     )
+
+
+def calculate_target_exposure(
+    momentum_position: pd.Series,
+    lagged_volatility_estimate: pd.Series,
+    asset_returns: pd.Series,
+    target_volatility: float,
+    maximum_exposure: float,
+) -> pd.DataFrame:
+    """Calculate scaled exposure, apply its cap and calculate gross returns."""
+
+    volatility_scalar = (
+        target_volatility / lagged_volatility_estimate
+    ).rename("volatility_scalar")
+    raw_target_exposure = (momentum_position * volatility_scalar).rename(
+        "raw_target_exposure"
+    )
+    target_exposure = raw_target_exposure.clip(upper=maximum_exposure).rename(
+        "target_exposure"
+    )
+    gross_vol_targeted_return = (target_exposure * asset_returns).rename(
+        "gross_vol_targeted_return"
+    )
+
+    return pd.concat(
+        [
+            volatility_scalar,
+            raw_target_exposure,
+            target_exposure,
+            gross_vol_targeted_return,
+        ],
+        axis=1,
+    )

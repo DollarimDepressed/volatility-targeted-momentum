@@ -4,6 +4,7 @@ import pandas as pd
 from volatility_targeted_momentum import (
     calculate_momentum_signals,
     calculate_simple_returns,
+    calculate_target_exposure,
     calculate_volatility_estimates,
 )
 
@@ -174,3 +175,103 @@ def test_volatility_requires_a_complete_nonmissing_window() -> None:
     )
 
     assert result["raw_annualised_volatility"].first_valid_index() == 5
+
+
+def make_exposure_example() -> tuple[pd.Series, pd.Series, pd.Series]:
+    dates = pd.date_range("2026-01-01", periods=5, freq="D")
+    positions = pd.Series(
+        [np.nan, 0.0, 1.0, 1.0, 1.0],
+        index=dates,
+        name="momentum_position",
+    )
+    volatility = pd.Series(
+        [np.nan, 0.20, 0.20, 0.08, 0.04],
+        index=dates,
+        name="lagged_volatility_estimate",
+    )
+    returns = pd.Series(
+        [np.nan, 0.01, 0.02, -0.03, 0.04],
+        index=dates,
+        name="asset_return",
+    )
+    return positions, volatility, returns
+
+
+def test_target_exposure_matches_known_example() -> None:
+    positions, volatility, returns = make_exposure_example()
+    expected = pd.DataFrame(
+        {
+            "volatility_scalar": [np.nan, 0.50, 0.50, 1.25, 2.50],
+            "raw_target_exposure": [np.nan, 0.00, 0.50, 1.25, 2.50],
+            "target_exposure": [np.nan, 0.00, 0.50, 1.25, 1.50],
+            "gross_vol_targeted_return": [
+                np.nan,
+                0.00,
+                0.01,
+                -0.0375,
+                0.06,
+            ],
+        },
+        index=positions.index,
+    )
+
+    actual = calculate_target_exposure(
+        positions,
+        volatility,
+        returns,
+        target_volatility=0.10,
+        maximum_exposure=1.50,
+    )
+
+    pd.testing.assert_frame_equal(actual, expected)
+
+
+def test_cash_position_blocks_volatility_scaled_exposure() -> None:
+    positions, volatility, returns = make_exposure_example()
+
+    result = calculate_target_exposure(
+        positions,
+        volatility,
+        returns,
+        target_volatility=0.10,
+        maximum_exposure=1.50,
+    )
+
+    assert np.isclose(result["volatility_scalar"].iloc[1], 0.50)
+    assert np.isclose(result["target_exposure"].iloc[1], 0.00)
+
+
+def test_target_exposure_respects_the_leverage_cap() -> None:
+    positions, volatility, returns = make_exposure_example()
+
+    result = calculate_target_exposure(
+        positions,
+        volatility,
+        returns,
+        target_volatility=0.10,
+        maximum_exposure=1.50,
+    )
+
+    assert np.isclose(result["raw_target_exposure"].iloc[-1], 2.50)
+    assert np.isclose(result["target_exposure"].iloc[-1], 1.50)
+    assert result["target_exposure"].dropna().le(1.50).all()
+
+
+def test_gross_return_equals_exposure_times_asset_return() -> None:
+    positions, volatility, returns = make_exposure_example()
+
+    result = calculate_target_exposure(
+        positions,
+        volatility,
+        returns,
+        target_volatility=0.10,
+        maximum_exposure=1.50,
+    )
+    expected = (
+        result["target_exposure"] * returns
+    ).rename("gross_vol_targeted_return")
+
+    pd.testing.assert_series_equal(
+        result["gross_vol_targeted_return"],
+        expected,
+    )

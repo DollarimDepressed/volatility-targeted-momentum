@@ -12,7 +12,7 @@ Day 1 computational implementation is complete under the unchanged specification
 
 ## Day 2 status
 
-Day 2 refactoring has started without changing the locked model. The simple-return, lagged momentum-signal and rolling-volatility calculations now live in a reusable project package and are called by the notebook. Ten focused automated tests cover return arithmetic, index alignment, missing-price behaviour, momentum construction, rolling sample volatility, square-root annualisation, warm-up periods and both one-day timing identities.
+Day 2 refactoring has started without changing the locked model. Returns, lagged momentum, lagged rolling volatility and capped target exposure now live in a reusable project package and are called by the notebook. Fourteen focused automated tests cover return arithmetic, missing data, momentum construction, volatility estimation, both one-day timing identities, the momentum cash gate, volatility scaling, the leverage cap and gross-return arithmetic.
 
 ## Initial comparison
 
