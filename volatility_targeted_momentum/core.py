@@ -97,3 +97,38 @@ def calculate_target_exposure(
         ],
         axis=1,
     )
+
+
+def calculate_turnover_and_costs(
+    target_exposure: pd.Series,
+    gross_strategy_returns: pd.Series,
+    transaction_cost_rate: float,
+) -> pd.DataFrame:
+    """Calculate exposure changes, turnover, costs and net strategy returns."""
+
+    first_exposure_date = target_exposure.first_valid_index()
+    previous_target_exposure = target_exposure.shift(1).rename(
+        "previous_target_exposure"
+    )
+    previous_target_exposure.loc[first_exposure_date] = 0.0
+    exposure_change = (target_exposure - previous_target_exposure).rename(
+        "exposure_change"
+    )
+    turnover = exposure_change.abs().rename("turnover")
+    estimated_transaction_cost = (transaction_cost_rate * turnover).rename(
+        "estimated_transaction_cost"
+    )
+    net_strategy_returns = (
+        gross_strategy_returns - estimated_transaction_cost
+    ).rename("net_vol_targeted_return")
+
+    return pd.concat(
+        [
+            previous_target_exposure,
+            exposure_change,
+            turnover,
+            estimated_transaction_cost,
+            net_strategy_returns,
+        ],
+        axis=1,
+    )

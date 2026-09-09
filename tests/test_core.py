@@ -5,6 +5,7 @@ from volatility_targeted_momentum import (
     calculate_momentum_signals,
     calculate_simple_returns,
     calculate_target_exposure,
+    calculate_turnover_and_costs,
     calculate_volatility_estimates,
 )
 
@@ -275,3 +276,106 @@ def test_gross_return_equals_exposure_times_asset_return() -> None:
         result["gross_vol_targeted_return"],
         expected,
     )
+
+
+def make_cost_example() -> tuple[pd.Series, pd.Series]:
+    dates = pd.date_range("2026-01-01", periods=6, freq="D")
+    exposure = pd.Series(
+        [np.nan, 0.50, 1.10, 0.40, 0.40, 0.00],
+        index=dates,
+        name="target_exposure",
+    )
+    gross_returns = pd.Series(
+        [np.nan, 0.01, -0.02, 0.00, 0.005, 0.00],
+        index=dates,
+        name="gross_vol_targeted_return",
+    )
+    return exposure, gross_returns
+
+
+def test_turnover_and_costs_match_known_example() -> None:
+    exposure, gross_returns = make_cost_example()
+    expected = pd.DataFrame(
+        {
+            "previous_target_exposure": [
+                np.nan,
+                0.00,
+                0.50,
+                1.10,
+                0.40,
+                0.40,
+            ],
+            "exposure_change": [np.nan, 0.50, 0.60, -0.70, 0.00, -0.40],
+            "turnover": [np.nan, 0.50, 0.60, 0.70, 0.00, 0.40],
+            "estimated_transaction_cost": [
+                np.nan,
+                0.0005,
+                0.0006,
+                0.0007,
+                0.0000,
+                0.0004,
+            ],
+            "net_vol_targeted_return": [
+                np.nan,
+                0.0095,
+                -0.0206,
+                -0.0007,
+                0.0050,
+                -0.0004,
+            ],
+        },
+        index=exposure.index,
+    )
+
+    actual = calculate_turnover_and_costs(
+        exposure,
+        gross_returns,
+        transaction_cost_rate=0.001,
+    )
+
+    pd.testing.assert_frame_equal(actual, expected, check_exact=False)
+
+
+def test_initial_entry_is_measured_from_cash() -> None:
+    exposure, gross_returns = make_cost_example()
+
+    result = calculate_turnover_and_costs(
+        exposure,
+        gross_returns,
+        transaction_cost_rate=0.001,
+    )
+    first_exposure_date = exposure.first_valid_index()
+
+    assert np.isclose(result.loc[first_exposure_date, "previous_target_exposure"], 0.0)
+    assert np.isclose(
+        result.loc[first_exposure_date, "turnover"],
+        exposure.loc[first_exposure_date],
+    )
+
+
+def test_turnover_is_absolute_and_unchanged_exposure_costs_zero() -> None:
+    exposure, gross_returns = make_cost_example()
+
+    result = calculate_turnover_and_costs(
+        exposure,
+        gross_returns,
+        transaction_cost_rate=0.001,
+    )
+
+    assert np.isclose(result["exposure_change"].iloc[3], -0.70)
+    assert np.isclose(result["turnover"].iloc[3], 0.70)
+    assert np.isclose(result["estimated_transaction_cost"].iloc[4], 0.0)
+
+
+def test_exit_cost_can_make_zero_gross_return_negative_net() -> None:
+    exposure, gross_returns = make_cost_example()
+
+    result = calculate_turnover_and_costs(
+        exposure,
+        gross_returns,
+        transaction_cost_rate=0.001,
+    )
+
+    assert np.isclose(gross_returns.iloc[-1], 0.0)
+    assert np.isclose(result["estimated_transaction_cost"].iloc[-1], 0.0004)
+    assert np.isclose(result["net_vol_targeted_return"].iloc[-1], -0.0004)
