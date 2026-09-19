@@ -2,8 +2,23 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 import numpy as np
 import pandas as pd
+
+
+@dataclass(frozen=True)
+class PerformanceResults:
+    """Aligned return, wealth and risk outputs for a strategy comparison."""
+
+    common_returns: pd.DataFrame
+    growth_factors: pd.DataFrame
+    wealth: pd.DataFrame
+    running_peak: pd.DataFrame
+    drawdown: pd.DataFrame
+    rolling_volatility: pd.DataFrame
+    performance_table: pd.DataFrame
 
 
 def calculate_simple_returns(adjusted_prices: pd.Series) -> pd.Series:
@@ -131,4 +146,65 @@ def calculate_turnover_and_costs(
             net_strategy_returns,
         ],
         axis=1,
+    )
+
+
+def calculate_performance_results(
+    strategy_returns: pd.DataFrame,
+    annualisation_days: int,
+    rolling_window_days: int,
+) -> PerformanceResults:
+    """Calculate aligned wealth, risk paths and summary performance metrics."""
+
+    common_returns = strategy_returns.dropna(how="any")
+    annualisation_multiplier = np.sqrt(annualisation_days)
+
+    growth_factors = 1.0 + common_returns
+    wealth = growth_factors.cumprod()
+    running_peak = wealth.cummax().clip(lower=1.0)
+    drawdown = wealth.div(running_peak) - 1.0
+    rolling_volatility = (
+        common_returns.rolling(
+            window=rolling_window_days,
+            min_periods=rolling_window_days,
+        ).std(ddof=1)
+        * annualisation_multiplier
+    )
+
+    daily_mean_return = common_returns.mean()
+    daily_return_volatility = common_returns.std(ddof=1)
+    ending_wealth = wealth.iloc[-1]
+    observations = len(common_returns)
+
+    performance_table = pd.DataFrame(index=common_returns.columns)
+    performance_table["Observations"] = common_returns.count().astype(int)
+    performance_table["Ending wealth"] = ending_wealth
+    performance_table["Total return"] = ending_wealth - 1.0
+    performance_table["Annualised compound return"] = (
+        ending_wealth.pow(annualisation_days / observations) - 1.0
+    )
+    performance_table["Annualised volatility"] = (
+        daily_return_volatility * annualisation_multiplier
+    )
+    performance_table["Sharpe ratio (zero cash rate)"] = (
+        daily_mean_return
+        / daily_return_volatility
+        * annualisation_multiplier
+    )
+    performance_table["Maximum drawdown"] = drawdown.min()
+    performance_table[
+        f"Mean rolling {rolling_window_days}-day volatility"
+    ] = rolling_volatility.mean()
+    performance_table[
+        f"Rolling {rolling_window_days}-day volatility dispersion"
+    ] = rolling_volatility.std(ddof=1)
+
+    return PerformanceResults(
+        common_returns=common_returns,
+        growth_factors=growth_factors,
+        wealth=wealth,
+        running_peak=running_peak,
+        drawdown=drawdown,
+        rolling_volatility=rolling_volatility,
+        performance_table=performance_table,
     )

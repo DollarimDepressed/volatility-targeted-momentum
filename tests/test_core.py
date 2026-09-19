@@ -3,6 +3,7 @@ import pandas as pd
 
 from volatility_targeted_momentum import (
     calculate_momentum_signals,
+    calculate_performance_results,
     calculate_simple_returns,
     calculate_target_exposure,
     calculate_turnover_and_costs,
@@ -379,3 +380,89 @@ def test_exit_cost_can_make_zero_gross_return_negative_net() -> None:
     assert np.isclose(gross_returns.iloc[-1], 0.0)
     assert np.isclose(result["estimated_transaction_cost"].iloc[-1], 0.0004)
     assert np.isclose(result["net_vol_targeted_return"].iloc[-1], -0.0004)
+
+
+def make_performance_example() -> pd.DataFrame:
+    dates = pd.date_range("2026-01-01", periods=4, freq="D")
+    return pd.DataFrame(
+        {
+            "Strategy A": [np.nan, -0.10, 0.10, 0.00],
+            "Strategy B": [0.05, -0.05, 0.02, 0.01],
+        },
+        index=dates,
+    )
+
+
+def test_performance_results_use_one_shared_complete_sample() -> None:
+    strategy_returns = make_performance_example()
+
+    result = calculate_performance_results(
+        strategy_returns,
+        annualisation_days=2,
+        rolling_window_days=2,
+    )
+    expected_common_returns = strategy_returns.iloc[1:]
+
+    pd.testing.assert_frame_equal(
+        result.common_returns,
+        expected_common_returns,
+    )
+    for output in (
+        result.growth_factors,
+        result.wealth,
+        result.running_peak,
+        result.drawdown,
+        result.rolling_volatility,
+    ):
+        assert output.index.equals(expected_common_returns.index)
+
+
+def test_running_peak_preserves_starting_capital_and_initial_drawdown() -> None:
+    result = calculate_performance_results(
+        make_performance_example(),
+        annualisation_days=2,
+        rolling_window_days=2,
+    )
+
+    assert np.isclose(result.wealth["Strategy A"].iloc[0], 0.90)
+    assert np.isclose(result.running_peak["Strategy A"].iloc[0], 1.00)
+    assert np.isclose(result.drawdown["Strategy A"].iloc[0], -0.10)
+    assert result.running_peak.ge(1.0).all().all()
+    assert result.drawdown.le(0.0).all().all()
+
+
+def test_performance_metrics_match_direct_calculations() -> None:
+    annualisation_days = 2
+    result = calculate_performance_results(
+        make_performance_example(),
+        annualisation_days=annualisation_days,
+        rolling_window_days=2,
+    )
+    expected_wealth = (1.0 + result.common_returns).cumprod()
+    expected_volatility = (
+        result.common_returns.std(ddof=1) * np.sqrt(annualisation_days)
+    )
+
+    pd.testing.assert_frame_equal(result.wealth, expected_wealth)
+    assert np.isclose(result.wealth["Strategy A"].iloc[-1], 0.99)
+    assert np.isclose(
+        result.performance_table.loc[
+            "Strategy A", "Annualised compound return"
+        ],
+        0.99 ** (annualisation_days / 3) - 1.0,
+    )
+    pd.testing.assert_series_equal(
+        result.performance_table["Annualised volatility"],
+        expected_volatility.rename("Annualised volatility"),
+    )
+
+
+def test_rolling_performance_volatility_keeps_its_warmup_missing() -> None:
+    result = calculate_performance_results(
+        make_performance_example(),
+        annualisation_days=2,
+        rolling_window_days=2,
+    )
+
+    assert result.rolling_volatility.iloc[0].isna().all()
+    assert result.rolling_volatility.iloc[1:].notna().all().all()
